@@ -19,7 +19,7 @@ export default function App() {
   });
   const [esp32Label, setEsp32Label]   = useState('ESP32 tersambung · Blok A');
 
-  const { zones, toggleZone, updateZones } = useZones();
+  const { zones, toggleZone, updateZones, updateZone } = useZones();
   const { history, range, changeRange, pushPoint } = useHistory();
 
   // WebSocket: terima update real-time dari backend
@@ -45,9 +45,22 @@ export default function App() {
     }
   }, []);
 
+  const handleIngestUpdate = useCallback((zoneId: string, moisture: number, temp: number, humidity: number, timestamp: string) => {
+    pushPoint({
+      zone_id: zoneId,
+      moisture,
+      temp,
+      humidity,
+      recorded_at: timestamp,
+    });
+    setSettings(s => ({ ...s, humidity }));
+    updateZone(zoneId, moisture, temp);
+  }, [pushPoint, updateZone]);
+
   const { connected: wsConnected, esp32Ok } = useWebSocket({
     onZoneUpdate: handleZoneUpdate,
     onEsp32Status: handleEsp32Status,
+    onIngestUpdate: handleIngestUpdate,
   });
 
   const toggleMobileMenu = () => {

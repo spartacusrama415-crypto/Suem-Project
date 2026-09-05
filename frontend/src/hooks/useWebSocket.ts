@@ -6,6 +6,7 @@ const WS_URL = import.meta.env.VITE_WS_URL || `${window.location.protocol === 'h
 interface UseWebSocketOptions {
   onZoneUpdate?: (zones: Zone[], humidity: number, setpoint: number) => void;
   onEsp32Status?: (connected: boolean, ip?: string) => void;
+  onIngestUpdate?: (zoneId: string, moisture: number, temp: number, humidity: number, timestamp: string) => void;
 }
 
 export function useWebSocket({ onZoneUpdate, onEsp32Status }: UseWebSocketOptions = {}) {
@@ -42,6 +43,11 @@ export function useWebSocket({ onZoneUpdate, onEsp32Status }: UseWebSocketOption
         if (msg.type === 'esp32_status') {
           setEsp32Ok(msg.connected);
           onEsp32Status?.(msg.connected, msg.esp32_ip);
+        }
+
+        if (msg.type === 'ingest_update') {
+          // @ts-ignore (we know msg has these properties when type is ingest_update)
+          onIngestUpdate?.(msg.zone_id, msg.moisture, msg.temp, msg.humidity, msg.timestamp);
         }
       } catch {
         // invalid JSON — ignore

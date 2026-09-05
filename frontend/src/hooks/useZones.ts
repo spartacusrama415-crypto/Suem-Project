@@ -59,5 +59,10 @@ export function useZones() {
     setZones(newZones);
   }, []);
 
-  return { zones, loading, error, toggleZone, updateZones, reload: load };
+  /** Dipanggil dari useWebSocket saat menerima ingest_update untuk 1 zona */
+  const updateZone = useCallback((zoneId: string, moisture: number, temp: number) => {
+    setZones(prev => prev.map(z => z.id === zoneId ? { ...z, moisture, temp } : z));
+  }, []);
+
+  return { zones, loading, error, toggleZone, updateZones, updateZone, reload: load };
 }
