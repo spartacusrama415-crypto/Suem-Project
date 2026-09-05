@@ -1,0 +1,2188 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SuemProject — Monitoring Lahan Pertanian</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --forest: #0F3D2E;
+            --forest-deep: #07211A;
+            --leaf: #34D399;
+            --leaf-dark: #059669;
+            --sun: #FFD60A;
+            --sun-dark: #E6A700;
+            --sky: #E4F7EE;
+            --bg: #EFF7F1;
+            --card: #FFFFFF;
+            --text: #0B241C;
+            --muted: #5E7568;
+            --line: #E1EEE4;
+            --amber: #F59E0B;
+            --amber-bg: #FEF3C7;
+            --red: #EF4444;
+            --red-bg: #FEE2E2;
+            --green-bg: #D1FAE5;
+            --radius: 18px;
+            --shadow: 0 4px 22px rgba(15, 61, 46, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        h1,
+        h2,
+        h3,
+        .brand,
+        .nav-item span,
+        .card-title,
+        .hero-value,
+        .stat-value {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        a {
+            color: inherit;
+            text-decoration: none;
+        }
+
+        ::selection {
+            background: var(--sun);
+            color: var(--forest-deep);
+        }
+
+        .num {
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ============ MOTION ============ */
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes floatY {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-6px);
+            }
+        }
+
+        @keyframes pulseDot {
+            0% {
+                box-shadow: 0 0 0 0 rgba(52, 211, 153, .5);
+            }
+
+            70% {
+                box-shadow: 0 0 0 9px rgba(52, 211, 153, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(52, 211, 153, 0);
+            }
+        }
+
+        @keyframes pulseDotRed {
+            0% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, .5);
+            }
+
+            70% {
+                box-shadow: 0 0 0 9px rgba(239, 68, 68, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+            }
+        }
+
+        @keyframes bubbleUp {
+            0% {
+                transform: translateY(0) scale(1);
+                opacity: .7;
+            }
+
+            100% {
+                transform: translateY(-70px) scale(.35);
+                opacity: 0;
+            }
+        }
+
+        @keyframes glowPulse {
+
+            0%,
+            100% {
+                opacity: .18;
+            }
+
+            50% {
+                opacity: .36;
+            }
+        }
+
+        @keyframes ripple {
+            to {
+                transform: scale(3.2);
+                opacity: 0;
+            }
+        }
+
+        .reveal {
+            animation: fadeUp .55s cubic-bezier(.2, .8, .2, 1) both;
+        }
+
+        .spot {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .spot::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(260px circle at var(--mx, 50%) var(--my, 50%), rgba(255, 214, 10, .16), transparent 70%);
+            opacity: 0;
+            transition: opacity .35s ease;
+        }
+
+        .spot:hover::before {
+            opacity: 1;
+        }
+
+        .press {
+            transition: transform .12s ease, box-shadow .2s ease;
+        }
+
+        .press:active {
+            transform: scale(.95);
+        }
+
+        .ripple-wrap {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple-el {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .55);
+            transform: scale(0);
+            pointer-events: none;
+            animation: ripple .55s ease-out forwards;
+        }
+
+        /* ============ LAYOUT ============ */
+        .app {
+            display: flex;
+            min-height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+
+        .sidebar {
+            background: linear-gradient(180deg, var(--forest) 0%, var(--forest-deep) 100%);
+            color: #EAF6EF;
+            padding: 24px 18px;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 250px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 50;
+            flex-shrink: 0;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+
+        .sidebar::after {
+            content: "";
+            position: absolute;
+            inset: auto 0 0 0;
+            height: 160px;
+            background: radial-gradient(circle at 20% 100%, rgba(52, 211, 153, .4), transparent 60%),
+                radial-gradient(circle at 80% 100%, rgba(255, 214, 10, .22), transparent 55%);
+            pointer-events: none;
+            animation: glowPulse 4s ease-in-out infinite;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 20px;
+            color: #fff;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--leaf), var(--sun));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: floatY 3.5s ease-in-out infinite;
+            box-shadow: 0 4px 16px rgba(255, 214, 10, .35);
+            flex-shrink: 0;
+        }
+
+        .brand small {
+            display: block;
+            font-size: 10.5px;
+            font-weight: 600;
+            color: var(--sun);
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            margin-top: 1px;
+        }
+
+        .nav-label {
+            font-size: 11px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #6FAE8C;
+            margin: 18px 6px 8px;
+            font-weight: 600;
+            position: relative;
+            z-index: 1;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 12px;
+            border-radius: 12px;
+            color: #C9E9D6;
+            font-size: 14.5px;
+            font-weight: 500;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+            transition: background .2s ease, color .2s ease, transform .15s ease;
+        }
+
+        .nav-item svg {
+            flex-shrink: 0;
+            opacity: .85;
+        }
+
+        .nav-item:hover {
+            background: rgba(255, 255, 255, .07);
+            transform: translateX(3px);
+        }
+
+        .nav-item.active {
+            background: linear-gradient(90deg, rgba(255, 214, 10, .2), rgba(52, 211, 153, .14));
+            color: #fff;
+            box-shadow: inset 3px 0 0 var(--sun);
+        }
+
+        .nav-item.active svg {
+            opacity: 1;
+        }
+
+        .esp-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #B7E0C8;
+            padding: 9px 11px;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .06);
+            position: relative;
+            z-index: 1;
+        }
+
+        .dot-live {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--leaf);
+            flex-shrink: 0;
+            animation: pulseDot 1.7s infinite;
+        }
+
+        .dot-live.off {
+            background: var(--red);
+            animation: pulseDotRed 1.7s infinite;
+        }
+
+        .sidebar-promo {
+            margin-top: 16px;
+            position: relative;
+            z-index: 1;
+            background: linear-gradient(160deg, var(--leaf-dark), var(--forest-deep));
+            border-radius: 16px;
+            padding: 18px;
+            text-align: center;
+            overflow: hidden;
+            border: 1px solid rgba(255, 214, 10, .15);
+        }
+
+        .sidebar-promo .bubble {
+            position: absolute;
+            bottom: -10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, .25);
+            animation: bubbleUp 3.2s ease-in infinite;
+        }
+
+        .sidebar-promo h4 {
+            font-size: 13.5px;
+            color: #fff;
+            margin-bottom: 4px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .sidebar-promo p {
+            font-size: 11.5px;
+            color: #B7E0C8;
+            margin-bottom: 12px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .btn-promo {
+            background: var(--sun);
+            color: var(--forest-deep);
+            border: none;
+            padding: 9px 0;
+            width: 100%;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 12.5px;
+            position: relative;
+            z-index: 2;
+            cursor: pointer;
+        }
+
+        .btn-promo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(255, 214, 10, .4);
+        }
+
+        .sidebar-foot {
+            margin-top: auto;
+            padding-top: 16px;
+        }
+
+        .main {
+            margin-left: 250px;
+            padding: 26px 34px 50px 34px;
+            width: calc(100% - 250px);
+            flex: 1;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .greeting {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .greeting-ic {
+            width: 44px;
+            height: 44px;
+            border-radius: 13px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, var(--forest), var(--leaf-dark));
+            color: var(--sun);
+            box-shadow: 0 6px 16px rgba(15, 61, 46, .25);
+            flex-shrink: 0;
+        }
+
+        .greeting h2 {
+            font-size: 16px;
+            font-weight: 800;
+        }
+
+        .greeting p {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .icon-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .icon-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(15, 61, 46, .15);
+        }
+
+        .dot-alert {
+            position: absolute;
+            top: 8px;
+            right: 9px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--red);
+            border: 2px solid var(--card);
+        }
+
+        .profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 6px 14px 6px 6px;
+            box-shadow: var(--shadow);
+        }
+
+        .avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--leaf), var(--sun));
+            flex-shrink: 0;
+        }
+
+        .profile .name {
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+
+        .profile .role {
+            font-size: 11.5px;
+            color: var(--muted);
+        }
+
+        .page-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .page-head h1 {
+            font-size: 26px;
+            font-weight: 800;
+        }
+
+        .page-head p {
+            color: var(--muted);
+            font-size: 13.5px;
+            margin-top: 4px;
+        }
+
+        .live-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            background: var(--green-bg);
+            color: #047857;
+            font-size: 12px;
+            font-weight: 700;
+            padding: 5px 12px;
+            border-radius: 20px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .live-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: var(--leaf-dark);
+            animation: pulseDot 1.6s infinite;
+        }
+
+        .btn {
+            border: none;
+            padding: 11px 18px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 13.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform .15s ease, box-shadow .15s ease;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--leaf-dark), var(--forest));
+            color: #fff;
+            box-shadow: 0 6px 18px rgba(15, 61, 46, .3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 24px rgba(15, 61, 46, .4);
+        }
+
+        .btn-ghost {
+            background: var(--card);
+            color: var(--text);
+            border: 1px solid var(--line);
+        }
+
+        .btn-ghost:hover {
+            transform: translateY(-2px);
+            border-color: var(--leaf-dark);
+        }
+
+        .hero-row {
+            display: grid;
+            grid-template-columns: 1.4fr 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 18px;
+        }
+
+        .hero-card {
+            background: linear-gradient(150deg, var(--forest), var(--forest-deep));
+            color: #fff;
+            border-radius: var(--radius);
+            padding: 24px 24px 18px 24px;
+            position: relative;
+            min-height: 186px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+        }
+
+        .hero-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border-radius: var(--radius);
+            background: radial-gradient(circle at 90% 0%, rgba(255, 214, 10, .22), transparent 55%);
+            pointer-events: none;
+        }
+
+        .field-note {
+            font-size: 12.5px;
+            color: #A9D9BE;
+            margin-bottom: 2px;
+            position: relative;
+        }
+
+        .hero-value {
+            font-size: 58px;
+            font-weight: 800;
+            line-height: 1;
+            display: flex;
+            align-items: flex-end;
+            gap: 6px;
+            position: relative;
+        }
+
+        .hero-value .unit {
+            font-size: 20px;
+            font-weight: 600;
+            color: #A9D9BE;
+            padding-bottom: 8px;
+        }
+
+        .hero-status-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 12px;
+            flex-wrap: wrap;
+            position: relative;
+        }
+
+        .status-chip {
+            font-size: 12px;
+            padding: 5px 11px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .status-chip.optimal {
+            background: rgba(52, 211, 153, .22);
+            color: #9CF0CC;
+        }
+
+        .status-chip.waspada {
+            background: rgba(255, 214, 10, .22);
+            color: #FFE585;
+        }
+
+        .status-chip.kering {
+            background: rgba(239, 68, 68, .22);
+            color: #F6ABAB;
+        }
+
+        .hero-sparkline {
+            position: relative;
+            height: 52px;
+            margin-top: 8px;
+            opacity: .6;
+            width: 100%;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 20px 22px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: var(--shadow);
+            transition: transform .2s ease, box-shadow .2s ease;
+            cursor: default;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 16px 32px rgba(15, 61, 46, .14);
+        }
+
+        .stat-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-icon {
+            width: 38px;
+            height: 38px;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+        }
+
+        .stat-icon.temp {
+            background: var(--amber-bg);
+        }
+
+        .stat-icon.humid {
+            background: var(--sky);
+        }
+
+        .stat-label {
+            font-size: 12.5px;
+            color: var(--muted);
+            margin-top: 14px;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 800;
+            margin-top: 2px;
+        }
+
+        .stat-delta {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+        }
+
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1.65fr 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: var(--radius);
+            padding: 22px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            transition: box-shadow .25s ease;
+            overflow-x: auto;
+        }
+
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .panel-title {
+            font-size: 17.5px;
+            font-weight: 700;
+        }
+
+        .panel-title-sub {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 2px;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .toggle-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .toggle-chip {
+            font-size: 12.5px;
+            padding: 7px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all .15s ease;
+        }
+
+        .toggle-chip .swatch {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+        }
+
+        .toggle-chip.active.moisture {
+            background: var(--sky);
+            color: var(--leaf-dark);
+            border-color: transparent;
+        }
+
+        .toggle-chip.active.temp {
+            background: var(--amber-bg);
+            color: #9A5F14;
+            border-color: transparent;
+        }
+
+        .toggle-chip:hover {
+            transform: translateY(-2px);
+        }
+
+        .range-select {
+            display: flex;
+            background: var(--bg);
+            border-radius: 20px;
+            padding: 3px;
+            gap: 2px;
+        }
+
+        .range-select button {
+            border: none;
+            background: transparent;
+            font-size: 12px;
+            color: var(--muted);
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 16px;
+            font-weight: 600;
+            transition: all .15s ease;
+        }
+
+        .range-select button.active {
+            background: var(--card);
+            color: var(--text);
+            box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+        }
+
+        .chart-wrap {
+            height: 260px;
+            position: relative;
+        }
+
+        .rec-card {
+            background: linear-gradient(150deg, var(--forest), var(--forest-deep));
+            color: #EAF6EF;
+            border-radius: var(--radius);
+            padding: 22px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .rec-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 100% 0%, rgba(255, 214, 10, .2), transparent 55%);
+            pointer-events: none;
+        }
+
+        .rec-card .panel-title {
+            color: #fff;
+            position: relative;
+        }
+
+        .rec-item {
+            display: flex;
+            gap: 12px;
+            padding: 13px 0;
+            border-top: 1px solid rgba(255, 255, 255, .1);
+            position: relative;
+        }
+
+        .rec-item:first-of-type {
+            border-top: none;
+            padding-top: 6px;
+        }
+
+        .rec-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-top: 6px;
+            flex-shrink: 0;
+        }
+
+        .rec-dot.urgent {
+            background: #F6ABAB;
+        }
+
+        .rec-dot.info {
+            background: var(--leaf);
+        }
+
+        .rec-dot.watch {
+            background: var(--sun);
+        }
+
+        .rec-text {
+            font-size: 13px;
+            color: #C7E4D2;
+            line-height: 1.5;
+        }
+
+        .rec-text b {
+            color: #fff;
+        }
+
+        .rec-cta {
+            margin-top: 14px;
+            width: 100%;
+            background: var(--sun);
+            color: var(--forest-deep);
+            border: none;
+            cursor: pointer;
+            padding: 11px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13.5px;
+            position: relative;
+            transition: transform .15s ease;
+        }
+
+        .rec-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 18px rgba(255, 214, 10, .35);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 550px;
+        }
+
+        th {
+            text-align: left;
+            font-size: 11.5px;
+            color: var(--muted);
+            font-weight: 700;
+            padding: 0 10px 10px 10px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        td {
+            padding: 13px 10px;
+            font-size: 13.5px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr {
+            transition: background .15s ease;
+        }
+
+        tbody tr:hover {
+            background: var(--sky);
+        }
+
+        .zone-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .zone-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 9px;
+            background: var(--amber-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 15px;
+        }
+
+        .zone-icon.on {
+            background: var(--sky);
+        }
+
+        .zone-sub {
+            font-size: 11.5px;
+            color: var(--muted);
+        }
+
+        .badge-pill {
+            font-size: 11.5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 600;
+        }
+
+        .badge-pill.on {
+            background: var(--sky);
+            color: var(--leaf-dark);
+        }
+
+        .badge-pill.off {
+            background: #F0EEE6;
+            color: var(--muted);
+        }
+
+        .badge-pill .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .mini-bar {
+            width: 70px;
+            height: 6px;
+            background: var(--line);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .mini-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            transition: width .4s ease;
+        }
+
+        .switch {
+            width: 40px;
+            height: 23px;
+            border-radius: 20px;
+            background: #E2DDCD;
+            position: relative;
+            border: none;
+            flex-shrink: 0;
+            transition: background .2s ease;
+            cursor: pointer;
+        }
+
+        .switch.on {
+            background: var(--leaf-dark);
+        }
+
+        .switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 19px;
+            height: 19px;
+            border-radius: 50%;
+            background: #fff;
+            transition: transform .2s ease;
+        }
+
+        .switch.on::after {
+            transform: translateX(17px);
+        }
+
+        .cal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .cal-nav {
+            display: flex;
+            gap: 6px;
+        }
+
+        .cal-nav button {
+            width: 30px;
+            height: 30px;
+            border-radius: 9px;
+            border: 1px solid var(--line);
+            background: var(--card);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all .15s ease;
+        }
+
+        .cal-nav button:hover {
+            background: var(--leaf-dark);
+            color: #fff;
+            border-color: var(--leaf-dark);
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 6px;
+        }
+
+        .cal-dow {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            padding-bottom: 6px;
+            font-weight: 700;
+        }
+
+        .cal-cell {
+            aspect-ratio: 1/1;
+            border-radius: 10px;
+            background: var(--bg);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            position: relative;
+            gap: 3px;
+            transition: transform .15s ease, box-shadow .15s ease;
+            cursor: pointer;
+        }
+
+        .cal-cell:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(15, 61, 46, .14);
+        }
+
+        .cal-cell.blank {
+            background: transparent;
+            cursor: default;
+        }
+
+        .cal-cell.blank:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .cal-cell .cdot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+        }
+
+        .cal-cell.today {
+            background: linear-gradient(135deg, var(--leaf-dark), var(--forest));
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .legend-row {
+            display: flex;
+            gap: 14px;
+            margin-top: 14px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 11.5px;
+            color: var(--muted);
+        }
+
+        .legend-item .cdot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .day-detail {
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid var(--line);
+            display: flex;
+            gap: 22px;
+            flex-wrap: wrap;
+        }
+
+        .day-detail-item .label {
+            font-size: 11.5px;
+            color: var(--muted);
+        }
+
+        .day-detail-item .value {
+            font-size: 21px;
+            font-weight: 800;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .form-row {
+            margin-bottom: 18px;
+        }
+
+        .form-row label {
+            display: block;
+            font-size: 13px;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
+
+        .form-row .hint {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 6px;
+            line-height: 1.6;
+        }
+
+        .form-row input[type=text] {
+            width: 100%;
+            max-width: 360px;
+            padding: 10px 12px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            font-size: 13.5px;
+            font-family: 'Inter', monospace;
+            background: var(--bg);
+        }
+
+        .slider-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            max-width: 420px;
+        }
+
+        input[type=range] {
+            flex: 1;
+            accent-color: var(--leaf-dark);
+            cursor: pointer;
+        }
+
+        .slider-value {
+            font-size: 21px;
+            font-weight: 800;
+            width: 64px;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, var(--leaf-dark), var(--forest));
+            color: #fff;
+            border: none;
+            padding: 11px 20px;
+            cursor: pointer;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13.5px;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+
+        .save-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(15, 61, 46, .3);
+        }
+
+        .radio-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .radio-opt {
+            flex: 1;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all .15s ease;
+        }
+
+        .radio-opt:hover {
+            transform: translateY(-2px);
+        }
+
+        .radio-opt.selected {
+            border-color: var(--leaf-dark);
+            background: var(--sky);
+        }
+
+        .radio-opt .r-title {
+            font-weight: 700;
+            font-size: 13.5px;
+            margin-bottom: 3px;
+        }
+
+        .radio-opt .r-sub {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        pre {
+            background: var(--forest-deep);
+            color: #DCE7DE;
+            padding: 16px;
+            border-radius: 12px;
+            font-size: 12px;
+            overflow-x: auto;
+            font-family: 'Inter', monospace;
+            line-height: 1.6;
+        }
+
+        .view {
+            display: none;
+        }
+
+        .view.active {
+            display: block;
+        }
+
+
+        /* Mobile Responsive & Full Width Adjustments */
+        .mobile-menu-toggle {
+            display: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            background: var(--card);
+            border: 1px solid var(--line);
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow);
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 45;
+        }
+
+
+        @media (min-width: 1200px) {
+            .main {
+                max-width: none;
+                width: calc(100% - 250px);
+                margin-left: 250px;
+            }
+        }
+
+
+        @media (max-width:1100px) {
+            .hero-row {
+                grid-template-columns: 1fr;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+
+        @media (max-width:760px) {
+            .app {
+                display: block;
+            }
+
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(.2, .8, .2, 1);
+                width: 260px;
+                padding: 24px 18px;
+            }
+
+            .sidebar.mobile-open {
+                transform: translateX(0);
+            }
+
+            .sidebar.mobile-open~.sidebar-overlay,
+            .sidebar-overlay.active {
+                display: block;
+            }
+
+            .sidebar .brand small,
+            .sidebar .brand div small,
+            .sidebar .nav-item span,
+            .sidebar .esp-pill span,
+            .sidebar .sidebar-promo {
+                display: block !important;
+            }
+
+            .sidebar .nav-item {
+                justify-content: flex-start !important;
+            }
+
+
+            .main {
+                margin-left: 0;
+                padding: 16px;
+                width: 100%;
+            }
+
+            .mobile-menu-toggle {
+                display: flex;
+            }
+
+            .topbar {
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+
+            .greeting h2 {
+                font-size: 14px;
+            }
+
+            .greeting p {
+                font-size: 11px;
+            }
+
+            .greeting-ic {
+                width: 36px;
+                height: 36px;
+            }
+
+            .page-head h1 {
+                font-size: 22px;
+            }
+
+            .hero-value {
+                font-size: 46px;
+            }
+
+            .radio-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+
+        <aside class="sidebar" id="sidebarEl">
+            <div class="brand">
+                <div class="brand-mark">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 22V12M12 12C12 7 8 4 3 4C3 9 6 12 12 12ZM12 12C12 7 16 4 21 4C21 9 18 12 12 12Z"
+                            stroke="#07211A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                <div>SuemProject<small>Smart Farm Monitor</small></div>
+            </div>
+
+            <div class="nav-label">Menu Utama</div>
+            <div class="nav-item active press" data-view="overview">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="2" />
+                    <rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" stroke-width="2" />
+                    <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="2" />
+                    <rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" stroke-width="2" />
+                </svg>
+                <span>Ringkasan</span>
+            </div>
+            <div class="nav-item press" data-view="monitoring">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2C7 2 4 6 4 10.5C4 15 8 19 12 22C16 19 20 15 20 10.5C20 6 17 2 12 2Z"
+                        stroke="currentColor" stroke-width="2" />
+                    <circle cx="12" cy="10.5" r="2.5" stroke="currentColor" stroke-width="2" />
+                </svg>
+                <span>Monitoring Zona</span>
+            </div>
+            <div class="nav-item press" data-view="history">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="17" rx="2" stroke="currentColor" stroke-width="2" />
+                    <path d="M3 9H21M8 2V6M16 2V6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                </svg>
+                <span>Riwayat &amp; Kalender</span>
+            </div>
+            <div class="nav-item press" data-view="settings">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" />
+                    <path
+                        d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"
+                        stroke="currentColor" stroke-width="1.6" />
+                </svg>
+                <span>Pengaturan &amp; ESP32</span>
+            </div>
+
+            <div class="nav-label">Lahan</div>
+            <div class="nav-item" style="opacity:.6">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 21V9L12 3L20 9V21H4Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+                </svg>
+                <span>Lahan Padi — Blok A</span>
+            </div>
+
+            <div class="sidebar-foot">
+                <div class="esp-pill">
+                    <span class="dot-live" id="espDot"></span>
+                    <span id="espLabel">ESP32 tersambung · Blok A</span>
+                </div>
+                <div class="sidebar-promo">
+                    <span class="bubble" style="left:20%;width:8px;height:8px;animation-delay:0s;"></span>
+                    <span class="bubble" style="left:55%;width:5px;height:5px;animation-delay:.9s;"></span>
+                    <span class="bubble" style="left:75%;width:7px;height:7px;animation-delay:1.6s;"></span>
+                    <h4>Unduh Aplikasi SuemProject</h4>
+                    <p>Pantau lahanmu dari mana saja</p>
+                    <button class="btn-promo press">Unduh Sekarang</button>
+                </div>
+            </div>
+        </aside>
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleMobileMenu()"></div>
+
+        <main class="main">
+
+            <section class="view active" id="view-overview">
+                <div class="topbar reveal">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div class="mobile-menu-toggle press" onclick="toggleMobileMenu()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div class="greeting">
+                            <div class="greeting-ic">🌱</div>
+                            <div>
+                                <h2>Selamat datang kembali, Pak Slamet</h2>
+                                <p id="dateLine">Kamis, 3 September 2026</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="topbar-right">
+                        <div class="icon-btn press">🔍</div>
+                        <div class="icon-btn press">🔔<span class="dot-alert"></span></div>
+                        <div class="profile">
+                            <div class="avatar"></div>
+                            <div>
+                                <div class="name">Pak Slamet</div>
+                                <div class="role">Pengelola lahan</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="page-head reveal" style="animation-delay:.05s">
+                    <div>
+                        <h1>Ringkasan Lahan <span class="live-chip"><span class="live-dot"></span> Live</span></h1>
+                        <p>Pantau kelembaban tanah dan suhu secara real-time untuk pengambilan keputusan penyiraman.</p>
+                    </div>
+                    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                        <button class="btn btn-primary press" onclick="switchView('monitoring')">＋ Kontrol Zona</button>
+                        <button class="btn btn-ghost press">⬇️ Ekspor Data</button>
+                    </div>
+                </div>
+
+                <div class="hero-row">
+                    <div class="hero-card reveal spot" style="animation-delay:.08s">
+                        <div>
+                            <div class="field-note">Kelembaban tanah rata-rata · Blok A</div>
+                            <div class="hero-value"><span id="heroMoisture">42</span><span class="unit">%</span></div>
+                        </div>
+                        <div class="hero-status-row">
+                            <span class="status-chip waspada" id="heroStatusChip">● Perlu diperhatikan</span>
+                            <span style="font-size:12px;color:#A9D9BE;">Setpoint: <b id="heroSetpointLabel"
+                                    style="color:#fff">35%</b></span>
+                        </div>
+                        <svg class="hero-sparkline" id="heroSpark" viewBox="0 0 400 56"
+                            preserveAspectRatio="none"></svg>
+                    </div>
+
+                    <div class="stat-card reveal spot" style="animation-delay:.12s">
+                        <div class="stat-top">
+                            <div class="stat-icon temp">🌡️</div>
+                        </div>
+                        <div>
+                            <div class="stat-label">Suhu udara (DHT22)</div>
+                            <div class="stat-value num"><span id="statTemp">29.4</span>°C</div>
+                            <div class="stat-delta" id="statTempDelta">▲ 0.6°C dari 1 jam lalu</div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card reveal spot" style="animation-delay:.16s">
+                        <div class="stat-top">
+                            <div class="stat-icon humid">💧</div>
+                        </div>
+                        <div>
+                            <div class="stat-label">Kelembaban udara (DHT22)</div>
+                            <div class="stat-value num"><span id="statHumidity">68</span>%</div>
+                            <div class="stat-delta" id="statHumidityDelta">▼ 3% dari 1 jam lalu</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="content-grid">
+                    <div>
+                        <div class="panel reveal" style="animation-delay:.1s">
+                            <div class="panel-head">
+                                <div>
+                                    <div class="panel-title">Tren Sensor</div>
+                                    <div class="panel-title-sub">Kelembaban tanah &amp; suhu udara dari data ESP32</div>
+                                </div>
+                                <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                                    <div class="toggle-group">
+                                        <button class="toggle-chip active moisture press" id="chipMoisture"
+                                            data-series="moisture"><span class="swatch"
+                                                style="background:var(--leaf-dark)"></span>Kelembaban tanah</button>
+                                        <button class="toggle-chip active temp press" id="chipTemp"
+                                            data-series="temp"><span class="swatch"
+                                                style="background:var(--sun)"></span>Suhu udara</button>
+                                    </div>
+                                    <div class="range-select">
+                                        <button class="active press" data-range="24h">24 Jam</button>
+                                        <button class="press" data-range="7d">7 Hari</button>
+                                        <button class="press" data-range="30d">30 Hari</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="chart-wrap"><canvas id="trendChart"></canvas></div>
+                        </div>
+
+                        <div class="panel reveal" style="animation-delay:.14s">
+                            <div class="panel-head">
+                                <div>
+                                    <div class="panel-title">Aktivitas Lapangan Saat Ini</div>
+                                    <div class="panel-title-sub">Status penyiraman otomatis per zona, langsung dari
+                                        ESP32</div>
+                                </div>
+                            </div>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Zona</th>
+                                        <th>Kelembaban</th>
+                                        <th>Status</th>
+                                        <th>Aksi terakhir</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="zoneTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="rec-card reveal" style="animation-delay:.18s">
+                            <div class="panel-title">Rekomendasi Tindakan</div>
+                            <div id="recList"></div>
+                            <button class="rec-cta press" onclick="switchView('monitoring')">Buka kontrol
+                                penyiraman</button>
+                        </div>
+
+                        <div class="panel reveal spot" style="animation-delay:.22s">
+                            <div class="panel-head">
+                                <div class="panel-title" style="font-size:15px;">Sumber Data</div>
+                            </div>
+                            <div style="font-size:13px;color:var(--muted);line-height:1.6;">
+                                Sensor: <b style="color:var(--text)">Soil Moisture Capacitive v2.0</b> &amp; <b
+                                    style="color:var(--text)">DHT22</b><br>
+                                Mikrokontroler: <b style="color:var(--text)">ESP32 DevKit</b><br>
+                                Mode koneksi: <span id="modeLabelText">Simulasi (demo)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="view" id="view-monitoring">
+                <div class="page-head reveal">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div class="mobile-menu-toggle press" onclick="toggleMobileMenu()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1>Monitoring Zona</h1>
+                            <p>Kontrol manual &amp; status penyiraman otomatis tiap titik sensor.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="panel reveal">
+                    <div class="panel-head">
+                        <div>
+                            <div class="panel-title">Peta Zona Lahan</div>
+                            <div class="panel-title-sub">Sentuh sakelar untuk menyalakan/mematikan penyiraman manual
+                                pada zona tertentu</div>
+                        </div>
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Zona</th>
+                                <th>Kelembaban tanah</th>
+                                <th>Suhu</th>
+                                <th>Penyiraman</th>
+                                <th>Mode</th>
+                                <th>Kontrol manual</th>
+                            </tr>
+                        </thead>
+                        <tbody id="zoneDetailBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="view" id="view-history">
+                <div class="page-head reveal">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div class="mobile-menu-toggle press" onclick="toggleMobileMenu()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1>Riwayat &amp; Kalender Sensor</h1>
+                            <p>Rekap harian kelembaban tanah dan suhu untuk melihat pola dan mengambil keputusan tanam.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-grid">
+                    <div class="panel reveal">
+                        <div class="cal-head">
+                            <div class="panel-title" id="calMonthLabel">September 2026</div>
+                            <div class="cal-nav"><button class="press" onclick="changeMonth(-1)">‹</button><button
+                                    class="press" onclick="changeMonth(1)">›</button></div>
+                        </div>
+                        <div class="cal-grid" id="calDow"></div>
+                        <div class="cal-grid" id="calGrid" style="margin-top:6px;"></div>
+                        <div class="legend-row">
+                            <div class="legend-item"><span class="cdot"
+                                    style="background:var(--leaf-dark)"></span>Kelembaban optimal</div>
+                            <div class="legend-item"><span class="cdot" style="background:var(--sun-dark)"></span>Perlu
+                                diperhatikan</div>
+                            <div class="legend-item"><span class="cdot" style="background:var(--red)"></span>Kering / di
+                                bawah setpoint</div>
+                        </div>
+                        <div class="day-detail" id="dayDetail"></div>
+                    </div>
+
+                    <div class="panel reveal">
+                        <div class="panel-title" style="margin-bottom:12px;">Catatan Panen &amp; Tindakan</div>
+                        <div style="font-size:12.5px;color:var(--muted);line-height:1.7;">
+                            Klik salah satu tanggal untuk melihat rata-rata kelembaban tanah, suhu udara, dan jumlah
+                            siklus penyiraman otomatis pada hari itu.
+                        </div>
+                        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--line);">
+                            <div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;">Ringkasan 7 hari
+                                terakhir</div>
+                            <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;">
+                                <span>Rata-rata kelembaban</span><b id="wk-avg-moist">—</b></div>
+                            <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;">
+                                <span>Rata-rata suhu</span><b id="wk-avg-temp">—</b></div>
+                            <div style="display:flex;justify-content:space-between;font-size:13px;padding:6px 0;">
+                                <span>Total siklus siram</span><b id="wk-cycles">—</b></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="view" id="view-settings">
+                <div class="page-head reveal">
+                    <div style="display:flex;align-items:center;gap:12px;">
+                        <div class="mobile-menu-toggle press" onclick="toggleMobileMenu()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                                <path d="M3 12H21M3 6H21M3 18H21" stroke="currentColor" stroke-width="2"
+                                    stroke-linecap="round" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1>Pengaturan &amp; Integrasi ESP32</h1>
+                            <p>Atur ambang batas penyiraman otomatis dan sumber data sensor.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="content-grid">
+                    <div class="panel reveal">
+                        <div class="panel-title" style="margin-bottom:16px;">Ambang Batas Penyiraman Otomatis</div>
+                        <div class="form-row">
+                            <label>Nyalakan penyiraman ketika kelembaban tanah di bawah</label>
+                            <div class="slider-row"><input type="range" id="setpointSlider" min="10" max="70"
+                                    value="35">
+                                <div class="slider-value"><span id="setpointValue">35</span>%</div>
+                            </div>
+                            <div class="hint">Zona akan otomatis disiram saat pembacaan sensor soil moisture berada di
+                                bawah angka ini, dan berhenti otomatis begitu kembali di atasnya.</div>
+                        </div>
+                        <div class="form-row">
+                            <label>Batas suhu peringatan (°C)</label>
+                            <div class="slider-row"><input type="range" id="tempAlertSlider" min="25" max="42"
+                                    value="34">
+                                <div class="slider-value"><span id="tempAlertValue">34</span>°</div>
+                            </div>
+                            <div class="hint">Dashboard akan menandai peringatan bila suhu udara melampaui batas ini.
+                            </div>
+                        </div>
+                        <button class="save-btn press" onclick="saveSettings()">Simpan pengaturan</button>
+                    </div>
+
+                    <div class="panel reveal">
+                        <div class="panel-title" style="margin-bottom:16px;">Sumber Data Sensor</div>
+                        <div class="radio-row" style="margin-bottom:18px;">
+                            <div class="radio-opt selected" id="optSim" onclick="setMode('sim')">
+                                <div class="r-title">Mode Simulasi</div>
+                                <div class="r-sub">Untuk demo tanpa perangkat ESP32 fisik</div>
+                            </div>
+                            <div class="radio-opt" id="optLive" onclick="setMode('live')">
+                                <div class="r-title">Sambungkan ESP32</div>
+                                <div class="r-sub">Ambil data langsung dari perangkat di lahan</div>
+                            </div>
+                        </div>
+                        <div class="form-row" id="ipRow" style="display:none;">
+                            <label>Alamat IP ESP32 (jaringan lokal)</label>
+                            <input type="text" id="esp32Ip" placeholder="192.168.1.45">
+                            <div class="hint">ESP32 harus menjalankan web server yang mengembalikan JSON di endpoint
+                                <code>/data</code>, contoh: <code>{"moisture":42,"temp":29.4,"humidity":68}</code>.
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <label>Contoh kode firmware ESP32 (Arduino)</label>
+                            <pre>#include &lt;WiFi.h&gt;
+#include &lt;WebServer.h&gt;
+#include &lt;DHT.h&gt;
+ 
+#define SOIL_PIN 34
+#define DHT_PIN  4
+DHT dht(DHT_PIN, DHT22);
+WebServer server(80);
+ 
+void handleData() {
+  int raw = analogRead(SOIL_PIN);
+  int moisture = map(raw, 4095, 1200, 0, 100);
+  float temp = dht.readTemperature();
+  float hum  = dht.readHumidity();
+ 
+  String json = "{\"moisture\":" + String(moisture) +
+                ",\"temp\":" + String(temp) +
+                ",\"humidity\":" + String(hum) + "}";
+  server.sendHeader("Access-Control-Allow-Origin", "*");
+  server.send(200, "application/json", json);
+}
+ 
+void setup() {
+  dht.begin();
+  WiFi.begin("NAMA_WIFI", "PASSWORD_WIFI");
+  while (WiFi.status() != WL_CONNECTED) delay(300);
+  server.on("/data", handleData);
+  server.begin();
+}
+ 
+void loop() { server.handleClient(); }</pre>
+                            <div class="hint">Setelah ESP32 tersambung ke Wi-Fi yang sama dengan perangkat yang membuka
+                                dashboard ini, masukkan alamat IP-nya lalu pilih "Sambungkan ESP32".</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script>
+        /* =========================================================
+           NAVIGASI SIDEBAR
+        ========================================================= */
+        const navItems = document.querySelectorAll('.nav-item[data-view]');
+        navItems.forEach(item => {
+            item.addEventListener('click', () => {
+                switchView(item.dataset.view);
+                if (window.innerWidth <= 760) toggleMobileMenu();
+            });
+        });
+
+
+        function toggleMobileMenu() {
+            document.getElementById('sidebarEl').classList.toggle('mobile-open');
+            document.getElementById('sidebarOverlay').classList.toggle('active');
+        }
+
+
+        function switchView(view) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.getElementById('view-' + view).classList.add('active');
+            navItems.forEach(i => i.classList.toggle('active', i.dataset.view === view));
+            document.querySelectorAll('#view-' + view + ' .reveal').forEach(el => {
+                el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+            });
+        }
+
+        /* =========================================================
+           STATE
+        ========================================================= */
+        const state = {
+            mode: 'sim', esp32Ip: '', setpoint: 35, tempAlert: 34,
+            zones: [
+                { id: 'A1', name: 'Zona A1 — Petak Utara', moisture: 42, temp: 29.4, auto: true, watering: false },
+                { id: 'A2', name: 'Zona A2 — Petak Timur', moisture: 31, temp: 30.1, auto: true, watering: true },
+                { id: 'A3', name: 'Zona A3 — Petak Selatan', moisture: 58, temp: 28.6, auto: true, watering: false },
+                { id: 'A4', name: 'Zona A4 — Petak Barat', moisture: 24, temp: 31.0, auto: false, watering: false },
+            ],
+            humidity: 68,
+            history: { labels: [], moisture: [], temp: [] },
+            activityLog: []
+        };
+        const dowNames = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+        function receiveESP32Data(data) {
+            if (typeof data.moisture === 'number') state.zones[0].moisture = clamp(data.moisture, 0, 100);
+            if (typeof data.temp === 'number') state.zones[0].temp = data.temp;
+            if (typeof data.humidity === 'number') state.humidity = clamp(data.humidity, 0, 100);
+            pushHistoryPoint(); renderAll();
+        }
+        window.receiveESP32Data = receiveESP32Data;
+        function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+        function simulateStep() {
+            state.zones.forEach(z => {
+                const drift = (Math.random() - 0.55) * 3;
+                z.moisture = clamp(Math.round(z.moisture + drift), 8, 95);
+                z.temp = +(z.temp + (Math.random() - 0.5) * 0.6).toFixed(1);
+                if (z.auto) z.watering = z.moisture < state.setpoint;
+            });
+            state.humidity = clamp(Math.round(state.humidity + (Math.random() - 0.5) * 2), 40, 90);
+        }
+        async function pollLiveESP32() {
+            if (!state.esp32Ip) return;
+            try {
+                const res = await fetch(`http://${state.esp32Ip}/data`, { cache: 'no-store' });
+                const json = await res.json();
+                receiveESP32Data(json);
+                document.getElementById('espDot').classList.remove('off');
+                document.getElementById('espLabel').textContent = 'ESP32 tersambung · ' + state.esp32Ip;
+            } catch (e) {
+                document.getElementById('espDot').classList.add('off');
+                document.getElementById('espLabel').textContent = 'ESP32 tidak terjangkau';
+            }
+        }
+        function pushHistoryPoint() {
+            const t = new Date();
+            const label = t.getHours().toString().padStart(2, '0') + ':' + t.getMinutes().toString().padStart(2, '0');
+            state.history.labels.push(label);
+            state.history.moisture.push(state.zones[0].moisture);
+            state.history.temp.push(state.zones[0].temp);
+            if (state.history.labels.length > 48) { state.history.labels.shift(); state.history.moisture.shift(); state.history.temp.shift(); }
+        }
+        (function seedHistory() {
+            let m = 42, t = 29;
+            for (let i = 0; i < 24; i++) {
+                m = clamp(m + (Math.random() - 0.5) * 4, 20, 70); t = t + (Math.random() - 0.5) * 0.4;
+                state.history.labels.push(i + ':00'); state.history.moisture.push(Math.round(m)); state.history.temp.push(+t.toFixed(1));
+            }
+        })();
+
+        function renderHero() {
+            const z = state.zones[0];
+            document.getElementById('heroMoisture').textContent = z.moisture;
+            document.getElementById('statTemp').textContent = z.temp.toFixed(1);
+            document.getElementById('statHumidity').textContent = state.humidity;
+            document.getElementById('heroSetpointLabel').textContent = state.setpoint + '%';
+            const chip = document.getElementById('heroStatusChip');
+            if (z.moisture < state.setpoint) { chip.className = 'status-chip kering'; chip.textContent = '● Di bawah setpoint — sedang disiram'; }
+            else if (z.moisture < state.setpoint + 12) { chip.className = 'status-chip waspada'; chip.textContent = '● Perlu diperhatikan'; }
+            else { chip.className = 'status-chip optimal'; chip.textContent = '● Kondisi optimal'; }
+            drawSpark();
+        }
+        function drawSpark() {
+            const svg = document.getElementById('heroSpark');
+            const data = state.history.moisture.slice(-24);
+            if (data.length < 2) return;
+            const w = 400, h = 56, min = Math.min(...data), max = Math.max(...data), range = (max - min) || 1;
+            const pts = data.map((v, i) => { const x = (i / (data.length - 1)) * w; const y = h - ((v - min) / range) * h * 0.8 - 4; return `${x},${y}`; }).join(' ');
+            svg.innerHTML = `<polyline points="${pts}" fill="none" stroke="#EAF6EF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+        }
+        function renderZoneTable() {
+            const body = document.getElementById('zoneTableBody');
+            body.innerHTML = state.zones.map(z => {
+                const barColor = z.moisture < state.setpoint ? '#EF4444' : (z.moisture < state.setpoint + 12 ? 'var(--sun-dark)' : 'var(--leaf-dark)');
+                return `<tr>
+      <td><div class="zone-name"><div class="zone-icon ${z.watering ? 'on' : ''}">${z.watering ? '💧' : '🌱'}</div>
+        <div><div>${z.name}</div><div class="zone-sub">${z.temp.toFixed(1)}°C</div></div></div></td>
+      <td><div style="display:flex;align-items:center;gap:8px;"><span class="num">${z.moisture}%</span>
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:${z.moisture}%;background:${barColor}"></div></div></div></td>
+      <td>${z.watering ? '<span class="badge-pill on"><span class="dot"></span>Menyiram</span>' : '<span class="badge-pill off"><span class="dot"></span>Siaga</span>'}</td>
+      <td class="zone-sub">${z.watering ? 'Dimulai otomatis' : (z.moisture < state.setpoint + 12 ? 'Dipantau ketat' : 'Tidak ada aksi')}</td>
+      <td style="text-align:right;color:var(--muted);font-size:12px;">${z.auto ? 'Otomatis' : 'Manual'}</td>
+    </tr>`;
+            }).join('');
+        }
+        function renderZoneDetail() {
+            const body = document.getElementById('zoneDetailBody');
+            body.innerHTML = state.zones.map((z, i) => {
+                const barColor = z.moisture < state.setpoint ? '#EF4444' : (z.moisture < state.setpoint + 12 ? 'var(--sun-dark)' : 'var(--leaf-dark)');
+                return `<tr>
+      <td><div class="zone-name"><div class="zone-icon ${z.watering ? 'on' : ''}">${z.watering ? '💧' : '🌱'}</div><div>${z.name}</div></div></td>
+      <td><div style="display:flex;align-items:center;gap:8px;"><span class="num">${z.moisture}%</span><div class="mini-bar"><div class="mini-bar-fill" style="width:${z.moisture}%;background:${barColor}"></div></div></div></td>
+      <td class="num">${z.temp.toFixed(1)}°C</td>
+      <td>${z.watering ? '<span class="badge-pill on"><span class="dot"></span>Menyiram</span>' : '<span class="badge-pill off"><span class="dot"></span>Mati</span>'}</td>
+      <td style="font-size:12px;color:var(--muted);">${z.auto ? 'Otomatis (setpoint ' + state.setpoint + '%)' : 'Manual'}</td>
+      <td><div style="display:flex;align-items:center;gap:10px;"><button class="switch ${z.watering ? 'on' : ''} press" onclick="toggleZone(${i})"></button>
+        <span style="font-size:11.5px;color:var(--muted);">${z.auto ? 'nonaktifkan auto untuk kontrol manual' : 'kontrol manual aktif'}</span></div></td>
+    </tr>`;
+            }).join('');
+        }
+        function toggleZone(i) {
+            const z = state.zones[i]; z.auto = false; z.watering = !z.watering;
+            logActivity(z.name, z.watering ? 'Penyiraman manual dinyalakan' : 'Penyiraman manual dimatikan');
+            renderAll();
+        }
+        function logActivity(zone, action) { state.activityLog.unshift({ time: new Date(), zone, action }); if (state.activityLog.length > 30) state.activityLog.pop(); }
+
+        function renderRecommendations() {
+            const list = document.getElementById('recList'); const items = [];
+            state.zones.forEach(z => {
+                if (z.moisture < state.setpoint) { items.push({ type: 'urgent', text: `<b>${z.name}</b> berada di ${z.moisture}%, di bawah setpoint ${state.setpoint}%. Sistem sudah menjalankan penyiraman otomatis.` }); }
+                else if (z.moisture < state.setpoint + 12) { items.push({ type: 'watch', text: `<b>${z.name}</b> mendekati ambang kering (${z.moisture}%). Pantau 1–2 jam ke depan.` }); }
+                if (z.temp > state.tempAlert) { items.push({ type: 'urgent', text: `Suhu di <b>${z.name}</b> mencapai ${z.temp.toFixed(1)}°C, melebihi batas ${state.tempAlert}°C.` }); }
+            });
+            if (items.length === 0) { items.push({ type: 'info', text: 'Semua zona dalam kondisi kelembaban dan suhu optimal. Tidak ada tindakan mendesak.' }); }
+            items.push({ type: 'info', text: `Rata-rata kelembaban udara ${state.humidity}% — kondisi ${state.humidity > 60 ? 'lembap, baik untuk mengurangi frekuensi penyiraman' : 'kering, evaporasi lebih cepat'}.` });
+            list.innerHTML = items.slice(0, 4).map(it => `<div class="rec-item"><div class="rec-dot ${it.type}"></div><div class="rec-text">${it.text}</div></div>`).join('');
+        }
+
+        let trendChart; let activeSeries = { moisture: true, temp: true };
+        function initChart() {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: state.history.labels, datasets: [
+                        { label: 'Kelembaban tanah (%)', data: state.history.moisture, borderColor: '#059669', backgroundColor: 'rgba(5,150,105,0.12)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2.8, yAxisID: 'y' },
+                        { label: 'Suhu udara (°C)', data: state.history.temp, borderColor: '#E6A700', backgroundColor: 'rgba(230,167,0,0.1)', fill: true, tension: .4, pointRadius: 0, borderWidth: 2.8, yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                    animation: { duration: 700, easing: 'easeOutQuart' },
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#07211A', padding: 10, cornerRadius: 8 } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: '#5E7568', maxTicksLimit: 8, font: { size: 11 } } },
+                        y: { position: 'left', min: 0, max: 100, grid: { color: '#EEF6F0' }, ticks: { color: '#5E7568', font: { size: 11 } } },
+                        y1: { position: 'right', min: 15, max: 45, grid: { display: false }, ticks: { color: '#5E7568', font: { size: 11 } } }
+                    }
+                }
+            });
+        }
+        function updateChart() {
+            trendChart.data.labels = state.history.labels;
+            trendChart.data.datasets[0].data = state.history.moisture; trendChart.data.datasets[0].hidden = !activeSeries.moisture;
+            trendChart.data.datasets[1].data = state.history.temp; trendChart.data.datasets[1].hidden = !activeSeries.temp;
+            trendChart.update('none');
+        }
+        document.getElementById('chipMoisture').addEventListener('click', function () { activeSeries.moisture = !activeSeries.moisture; this.classList.toggle('active'); updateChart(); });
+        document.getElementById('chipTemp').addEventListener('click', function () { activeSeries.temp = !activeSeries.temp; this.classList.toggle('active'); updateChart(); });
+        document.querySelectorAll('.range-select button').forEach(btn => {
+            btn.addEventListener('click', function () { document.querySelectorAll('.range-select button').forEach(b => b.classList.remove('active')); this.classList.add('active'); });
+        });
+
+        let calDate = new Date(2026, 8, 1);
+        const dayData = {};
+        function seedCalendarData() {
+            const daysInMonth = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0).getDate();
+            for (let day = 1; day <= daysInMonth; day++) {
+                const key = `${calDate.getFullYear()}-${calDate.getMonth()}-${day}`;
+                if (!dayData[key]) {
+                    const avgM = Math.round(30 + Math.random() * 40);
+                    dayData[key] = { moisture: avgM, temp: +(27 + Math.random() * 5).toFixed(1), cycles: avgM < state.setpoint ? Math.ceil(Math.random() * 3) + 1 : Math.floor(Math.random() * 2) };
+                }
+            }
+        }
+        function renderCalendar() {
+            seedCalendarData();
+            document.getElementById('calMonthLabel').textContent = calDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+            document.getElementById('calDow').innerHTML = dowNames.map(d => `<div class="cal-dow">${d}</div>`).join('');
+            const grid = document.getElementById('calGrid');
+            const firstDay = new Date(calDate.getFullYear(), calDate.getMonth(), 1).getDay();
+            const daysInMonth = new Date(calDate.getFullYear(), calDate.getMonth() + 1, 0).getDate();
+            const today = new Date();
+            let html = ''; for (let i = 0; i < firstDay; i++) html += `<div class="cal-cell blank"></div>`;
+            for (let day = 1; day <= daysInMonth; day++) {
+                const key = `${calDate.getFullYear()}-${calDate.getMonth()}-${day}`; const d = dayData[key];
+                let color = '#059669'; if (d.moisture < state.setpoint) color = '#EF4444'; else if (d.moisture < state.setpoint + 12) color = '#E6A700';
+                const isToday = today.getFullYear() === calDate.getFullYear() && today.getMonth() === calDate.getMonth() && today.getDate() === day;
+                html += `<div class="cal-cell ${isToday ? 'today' : ''}" onclick="showDay(${day})"><span>${day}</span><span class="cdot" style="background:${color}"></span></div>`;
+            }
+            grid.innerHTML = html;
+            showDay(today.getDate() <= daysInMonth ? today.getDate() : 1);
+            renderWeekSummary();
+        }
+        function changeMonth(delta) { calDate.setMonth(calDate.getMonth() + delta); renderCalendar(); }
+        function showDay(day) {
+            const key = `${calDate.getFullYear()}-${calDate.getMonth()}-${day}`; const d = dayData[key]; if (!d) return;
+            const dateLabel = new Date(calDate.getFullYear(), calDate.getMonth(), day).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' });
+            document.getElementById('dayDetail').innerHTML = `
+    <div class="day-detail-item"><div class="label">${dateLabel}</div></div>
+    <div class="day-detail-item"><div class="label">Rata-rata kelembaban</div><div class="value">${d.moisture}%</div></div>
+    <div class="day-detail-item"><div class="label">Rata-rata suhu</div><div class="value">${d.temp}°C</div></div>
+    <div class="day-detail-item"><div class="label">Siklus penyiraman</div><div class="value">${d.cycles}×</div></div>`;
+        }
+        function renderWeekSummary() {
+            const keys = Object.keys(dayData).slice(-7); if (keys.length === 0) return;
+            let m = 0, t = 0, c = 0; keys.forEach(k => { m += dayData[k].moisture; t += dayData[k].temp; c += dayData[k].cycles; });
+            document.getElementById('wk-avg-moist').textContent = Math.round(m / keys.length) + '%';
+            document.getElementById('wk-avg-temp').textContent = (t / keys.length).toFixed(1) + '°C';
+            document.getElementById('wk-cycles').textContent = c + '×';
+        }
+        window.changeMonth = changeMonth; window.showDay = showDay; window.toggleZone = toggleZone; window.switchView = switchView;
+
+        const setpointSlider = document.getElementById('setpointSlider');
+        setpointSlider.addEventListener('input', function () { document.getElementById('setpointValue').textContent = this.value; });
+        const tempAlertSlider = document.getElementById('tempAlertSlider');
+        tempAlertSlider.addEventListener('input', function () { document.getElementById('tempAlertValue').textContent = this.value; });
+        function saveSettings() {
+            state.setpoint = parseInt(setpointSlider.value, 10);
+            state.tempAlert = parseInt(tempAlertSlider.value, 10);
+            state.esp32Ip = document.getElementById('esp32Ip').value.trim();
+            renderAll();
+            const btn = document.querySelector('.save-btn'); const original = btn.textContent;
+            btn.textContent = 'Tersimpan ✓'; setTimeout(() => btn.textContent = original, 1400);
+        }
+        function setMode(mode) {
+            state.mode = mode;
+            document.getElementById('optSim').classList.toggle('selected', mode === 'sim');
+            document.getElementById('optLive').classList.toggle('selected', mode === 'live');
+            document.getElementById('ipRow').style.display = mode === 'live' ? 'block' : 'none';
+            document.getElementById('modeLabelText').textContent = mode === 'live' ? ('Langsung dari ESP32' + (state.esp32Ip ? ' · ' + state.esp32Ip : '')) : 'Simulasi (demo)';
+        }
+        window.setMode = setMode; window.saveSettings = saveSettings;
+
+        function renderAll() { renderHero(); renderZoneTable(); renderZoneDetail(); renderRecommendations(); if (trendChart) updateChart(); }
+        initChart(); renderAll(); renderCalendar();
+
+        setInterval(() => {
+            if (state.mode === 'sim') { simulateStep(); pushHistoryPoint(); } else { pollLiveESP32(); }
+            renderAll();
+        }, 5000);
+
+        /* =========================================================
+           MOTION: spotlight mengikuti kursor + ripple klik
+        ========================================================= */
+        document.querySelectorAll('.spot').forEach(el => {
+            el.addEventListener('mousemove', e => {
+                const r = el.getBoundingClientRect();
+                el.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100) + '%');
+                el.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100) + '%');
+            });
+        });
+        document.querySelectorAll('.press').forEach(el => {
+            el.classList.add('ripple-wrap');
+            el.addEventListener('click', function (e) {
+                const r = this.getBoundingClientRect();
+                const d = Math.max(r.width, r.height);
+                const ripple = document.createElement('span');
+                ripple.className = 'ripple-el';
+                ripple.style.width = ripple.style.height = d + 'px';
+                ripple.style.left = (e.clientX - r.left - d / 2) + 'px';
+                ripple.style.top = (e.clientY - r.top - d / 2) + 'px';
+                this.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 550);
+            });
+        });
+    </script>
+</body>
+
+</html>

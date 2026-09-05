@@ -1,0 +1,38 @@
+# ===========================
+# SuemProject — .gitignore
+# ===========================
+
+# Environment files (JANGAN pernah di-commit!)
+.env
+backend/.env
+frontend/.env
+
+# Railway secrets — jangan di-commit
+backend/.env.railway
+
+# .env.production boleh di-commit (berisi URL publik, bukan secret)
+# frontend/.env.production  ← di-comment agar bisa di-commit
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.venv/
+venv/
+dist/
+*.egg
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
