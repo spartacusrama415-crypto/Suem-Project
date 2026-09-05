@@ -84,7 +84,7 @@ if env.frontend_url:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_origins,
-    allow_origin_regex=r"https://(.*\.)?(netlify\.app|railway\.app|up\.railway\.app)$",
+    allow_origin_regex=r"https://(.*\.)?(vercel\.app|railway\.app|up\.railway\.app)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
