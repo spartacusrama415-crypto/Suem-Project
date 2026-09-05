@@ -33,10 +33,13 @@ async def get_history(
         .select("*")
         .eq("zone_id", zone_id)
         .gte("recorded_at", since)
-        .order("recorded_at")
+        .order("recorded_at", desc=True)
+        .limit(1000)
         .execute()
     )
-    return resp.data or []
+    data = resp.data or []
+    data.reverse()  # Balikkan urutan agar kronologis dari lama ke baru
+    return data
 
 
 @router.get("/calendar")
